@@ -1,0 +1,10 @@
+footer {
+  display: flex;
+  justify-content: center;
+}
+
+.img_footer {
+  padding: 1rem;
+  width: 20rem;
+  height: 8rem;
+}

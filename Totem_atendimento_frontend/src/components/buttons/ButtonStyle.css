@@ -1,0 +1,29 @@
+.ticketContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ticket-button {
+  font-family: "Gill Sans", sans-serif;
+  color: #fff;
+  cursor: pointer;
+  border: 2rem, solid  #c42e1a00;
+  background-color: #21c401;
+  border-width: 2rem 1rem; /* 5px top and bottom, 20px on the sides */
+  border-radius: 1rem;
+  font-size: 50px;
+}
+
+
+.ticket-button-disabled {
+  font-family: "Gill Sans", sans-serif;
+  color: #fff;
+  cursor: pointer;
+  border: 2rem, solid  #c42e1a00;
+  background-color: #686868;
+  border-width: 2rem 1rem; /* 5px top and bottom, 20px on the sides */
+  border-radius: 1rem;
+  font-size: 50px;
+}
