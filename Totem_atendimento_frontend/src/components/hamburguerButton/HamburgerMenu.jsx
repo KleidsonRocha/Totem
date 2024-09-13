@@ -34,6 +34,7 @@ const HamburgerMenu = () => {
         </div>
         <div className={`menu-content ${isOpen ? 'open' : ''}`}>
           <a href="/">Retirar senha</a>
+          <a href="/Ticket">Chamar Ticket</a>
           <a href="/Devolucao">Devolução de peças</a>
         </div>
       </div>

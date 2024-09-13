@@ -18,31 +18,33 @@ CORS(app)
 # Configura a impressora
 lista_impressora = win32print.EnumPrinters(2)
 
-print(lista_impressora)
-
-impressora = lista_impressora[1]
+impressora = lista_impressora[2]
 
 print(impressora)
 
 win32print.SetDefaultPrinter(impressora[2])
 
+# Variável global para o controle do número de atendimento
+ticket_number = 1
+
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
+   global ticket_number  # Usa a variável global para acessar o número de tickets
+
    try:
-      if not request.json or 'quantidade_ticket' not in request.json:
-         return jsonify({'error': 'Número de ticket inexistente'}), 400
-
-      QTDtickets = request.json['quantidade_ticket']
-
       # Obter o timestamp atual
       timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 
+      # Evita salvar caso o número de tickets seja 1 (indica que não há tickets emitidos)
+      if ticket_number == 1:
+         return jsonify({'message': 'Nenhum ticket emitido para salvar'}), 200
+
       # Salvar a quantidade de tickets e o timestamp no arquivo
       with open('tickets_log.txt', 'a') as file:
-         if(QTDtickets == 0):
-            return
-         else:
-            file.write(f'{timestamp} - Quantidade de tickets: {QTDtickets}\n')
+         file.write(f'{timestamp} - Quantidade de tickets: {ticket_number - 1}\n')
+
+      # Reinicia o contador de tickets no backend
+      ticket_number = 1
 
       return jsonify({'message': 'Quantidade de tickets salva com sucesso'}), 200
 
@@ -52,12 +54,12 @@ def salvar_ticket():
 
 @app.route('/imprimir_atendimento', methods=['POST'])
 def imprimir_atendimento():
-   try:
-      # Verifica se as informações necessárias foram enviadas no JSON
-      if not request.json or 'numero' not in request.json:
-         return jsonify({'error': 'Número de atendimento não enviado'}), 400
+   global ticket_number  # Usa uma variável global para incrementar o número
 
-      numero_atendimento = request.json['numero']
+   try:
+      # Gera o número do atendimento automaticamente
+      numero_atendimento = ticket_number
+      ticket_number += 1
 
       # Configura o caminho do arquivo temporário para o PDF
       caminho_temp = os.path.join(tempfile.gettempdir(), f"atendimento_{numero_atendimento}.pdf")
@@ -81,7 +83,7 @@ def imprimir_atendimento():
       styles = getSampleStyleSheet()
 
       estilo_titulo = styles['Title']
-      estilo_titulo.fontSize = 120
+      estilo_titulo.fontSize = 80
       estilo_titulo.spaceAfter = 50
       estilo_titulo.spaceBefore = 0
 
@@ -121,13 +123,21 @@ def imprimir_atendimento():
       time.sleep(5)
 
       # Exclui o arquivo temporário após a impressão
-      print(caminho_temp)
       os.remove(caminho_temp)
 
-      return jsonify({'message': 'PDF gerado e impresso com sucesso!'}), 200
+      # Retorna o número do atendimento gerado ao front-end
+      return jsonify({'message': 'PDF gerado e impresso com sucesso!', 'numero': numero_atendimento}), 200
 
    except Exception as e:
       return jsonify({'error': str(e)}), 500
+
+@app.route('/ticket_atual', methods=['GET'])
+def ticket_atual():
+    global ticket_number
+    try:
+        return jsonify({'ticket_atual': ticket_number}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
