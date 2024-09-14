@@ -5,13 +5,37 @@ import "./Ticket.css";
 
 // Componente Principal
 const Ticket = () => {
-  const [TicketImpresso, setTicketImpresso] = useState(0);
+  const [ticketImpresso, setTicketImpresso] = useState(0);
   const [ticket, setTicket] = useState(0);
-  const [ticketAChamar, setticketAChamar] = useState(0);
+  const [ticketAChamar, setTicketAChamar] = useState(0);
 
   useEffect(() => {
-    handleConsultaUltimoTicket();
+    const interval = setInterval(() => {
+      handleConsultaUltimoTicket();
+      handleVerificaTicketImpresso();
+
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleVerificaTicketImpresso = async () => {
+    try {
+      const response = await fetch('http://192.168.10.35:9000/ticket_impresso', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTicketImpresso(data.ticket_atual);
+      } else {
+        console.error('Falha ao obter o número do ticket impresso');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar a requisição:', error);
+    }
+  };
 
   const handleConsultaUltimoTicket = async () => {
     try {
@@ -21,11 +45,10 @@ const Ticket = () => {
           'Content-Type': 'application/json',
         },
       });
-
       if (response.ok) {
         const data = await response.json();
-        setTicketImpresso(data.ticket_atual);
         calcularTicketsAChamar(data.ticket_atual, ticket);
+        setTicket(data.ticket_atual)
       } else {
         console.error('Falha ao obter o número do ticket');
       }
@@ -34,41 +57,56 @@ const Ticket = () => {
     }
   };
 
-  const calcularTicketsAChamar = (TicketImpresso, ticket) => {
-    const ticketsEsperando = TicketImpresso - ticket;
-    setticketAChamar(ticketsEsperando);
+  const calcularTicketsAChamar = (ticketImpresso, ticket) => {
+    const ticketsEsperando = ticketImpresso - ticket;
+    setTicketAChamar(ticketsEsperando);
   };
 
   const handleChamadaTicket = async () => {
     try {
-      await handleConsultaUltimoTicket();
-
-      // Verifica se há tickets disponíveis
-      if (ticket >= TicketImpresso) {
+      // Verifica se há tickets impressos que podem ser chamados
+      if (ticket >= ticketImpresso) {
         alert("Não há mais tickets para chamar.");
         return;
       }
-
-      const novoTicket = ticket + 1;
-      setTicket(novoTicket);
-      alert(`Chamar ticket: ${novoTicket}`);
-
-      // Atualiza o número de tickets restantes para chamar
-      calcularTicketsAChamar(TicketImpresso, novoTicket);
+      // Envia solicitação para chamar o próximo ticket
+      const response = await fetch('http://192.168.10.35:9000/chamar_ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Chamar ticket: ${data.ticket_atual}`);
+        setTicket(data.ticket_atual);
+        calcularTicketsAChamar(ticketImpresso, data.ticket_atual);
+      } else {
+        console.error('Falha ao chamar o ticket');
+      }
     } catch (error) {
       console.error('Erro ao chamar o ticket:', error);
     }
   };
 
+  // Verifica se há tickets disponíveis para chamar
+  const temTicketsParaChamar = ticket < ticketImpresso;
+  const qtdTicketsParaChamar = ticketImpresso - ticket
+
   return (
     <>
       <HamburgerMenu />
-      <div className='carousel'>
+      <div className='carouselTicket'>
         <h1>Ticket Atual: {ticket}</h1>
-        <br />
-        <br />
-        <h1>Há {ticketAChamar} para chamar</h1>
-        <button onClick={handleChamadaTicket}>Chamar Ticket</button>
+        <br/>
+        <h1>Há {qtdTicketsParaChamar} tickets para chamar</h1>
+        <button 
+          className='buttonAtendimento'
+          onClick={handleChamadaTicket} 
+          disabled={!temTicketsParaChamar}
+        >
+          Chamar Ticket
+        </button>
       </div>
       <Footer />
     </>

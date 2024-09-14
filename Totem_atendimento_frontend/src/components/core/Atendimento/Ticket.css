@@ -1,3 +1,18 @@
-h1 {
-  color: aliceblue;
+.carouselTicket {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.buttonAtendimento {
+  padding: 2rem;
+  border-radius: 1rem;
+  background-color: white;
+  color: red;
+}
+
+.buttonAtendimento:disabled {
+    background-color: rgb(197, 197, 197);
 }

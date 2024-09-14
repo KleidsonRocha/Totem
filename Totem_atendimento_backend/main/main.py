@@ -5,12 +5,14 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
+from threading import Lock
 import win32print
 import win32api
 import os
 import tempfile
 import time
 import datetime
+
 
 app = Flask(__name__)
 CORS(app)
@@ -24,8 +26,10 @@ print(impressora)
 
 win32print.SetDefaultPrinter(impressora[2])
 
-# Variável global para o controle do número de atendimento
+# Variável global para o controle do número de atendimento e ticket atual
 ticket_number = 1
+ticket_atual = 0
+lock = Lock()
 
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
@@ -131,13 +135,29 @@ def imprimir_atendimento():
    except Exception as e:
       return jsonify({'error': str(e)}), 500
 
-@app.route('/ticket_atual', methods=['GET'])
-def ticket_atual():
+@app.route('/ticket_impresso', methods=['GET'])
+def obter_ticket_impresso():
     global ticket_number
     try:
         return jsonify({'ticket_atual': ticket_number}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/ticket_atual', methods=['GET'])
+def obter_ticket_atual():
+    global ticket_atual
+    try:
+        return jsonify({"ticket_atual": ticket_atual}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/chamar_ticket', methods=['POST'])
+def chamar_ticket():
+    global ticket_atual
+
+    with lock:
+        ticket_atual += 1
+        return jsonify({"ticket_atual": ticket_atual, "message": f"Ticket {ticket_atual} chamado com sucesso!"}), 200
 
 
 if __name__ == '__main__':

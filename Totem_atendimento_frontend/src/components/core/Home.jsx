@@ -1,5 +1,5 @@
 import React from 'react';
-import ButtonTicket from '../buttons/buttonTicket';
+import ButtonTicket from '../buttons/ButtonTicket';
 import HamburgerMenu from '../hamburguerButton/HamburgerMenu';
 import './main.css';
 import Footer from '../footer/footer';
