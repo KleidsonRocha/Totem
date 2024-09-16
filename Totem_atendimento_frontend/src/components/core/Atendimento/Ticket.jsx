@@ -15,6 +15,7 @@ const Ticket = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupTitle, setPopupTitle] = useState('');
   const [popupMessage, setPopupMessage] = useState('');
+  const authToken = sessionStorage.getItem('userData');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -97,14 +98,14 @@ const Ticket = () => {
         setShowPopup(true); // Mostra o popup se não houver mais tickets
         return;
       }
-
+  
       const response = await fetch('http://192.168.10.35:9000/chamar_ticket', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
+  
       if (response.ok) {
         const data = await response.json();
         setPopupTitle('Ticket Chamado');
@@ -112,6 +113,12 @@ const Ticket = () => {
         setShowPopup(true);
         setTicket(data.ticket_atual);
         calcularTicketsAChamar(ticketImpresso, data.ticket_atual);
+  
+        // Emite o evento para notificar o Dashboard
+        socket.emit('novo_ticket_chamado', {
+          ticketNumber: data.ticket_atual,
+          attendantName: authToken // Certifique-se de que authToken contém o nome do atendente
+        });
       } else {
         setPopupTitle('Erro');
         setPopupMessage('Não foi possível chamar o ticket.');
@@ -124,7 +131,6 @@ const Ticket = () => {
       setShowPopup(true); // Mostra o popup em caso de erro
     }
   };
-
   const handleClosePopup = () => setShowPopup(false); 
 
   const temTicketsParaChamar = ticket < ticketImpresso;

@@ -81,8 +81,6 @@ def pedidos():
    result = db.session.execute(sql, {'username': username})
    usuario = result.fetchone()  # Obtém um único resultado
 
-
-
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
    global ticket_number  # Usa a variável global para acessar o número de tickets
@@ -221,6 +219,12 @@ def handle_connect():
     # Enviar os valores atuais para o cliente
     socketio.emit('ticket_atualizado', {'ticket_atual': ticket_atual})
     socketio.emit('ticket_impresso_atualizado', {'ticket_impresso': ticket_number})
+
+@socketio.on('novo_ticket_chamado')
+def handle_novo_ticket_chamado(data):
+    print(f'Novo ticket chamado: {data}')
+    # Emite o evento para todos os clientes conectados
+    socketio.emit('novo_ticket_chamado', data)
 
 if __name__ == '__main__':
    app.run(debug=True, host='0.0.0.0', port=9000)

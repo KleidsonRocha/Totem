@@ -30,9 +30,6 @@ const Login = () => {
       }
     
       const data = await response.json();
-      console.log(data.success.cd_usuario);
-      console.log(data.success.login);
-
 
       sessionStorage.setItem('authToken', data.success.cd_usuario);
       sessionStorage.setItem('userData', data.success.login);
