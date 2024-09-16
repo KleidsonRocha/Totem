@@ -1,22 +1,49 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import HamburgerMenu from '../../hamburguerButton/HamburgerMenu';
 import Footer from '../../footer/footer';
 import "./Ticket.css";
+import Popup from '../../popup/Popup';
 
-// Componente Principal
+const socket = io('http://192.168.10.35:9000');
+
 const Ticket = () => {
   const [ticketImpresso, setTicketImpresso] = useState(0);
   const [ticket, setTicket] = useState(0);
   const [ticketAChamar, setTicketAChamar] = useState(0);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupTitle, setPopupTitle] = useState('');
+  const [popupMessage, setPopupMessage] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      handleConsultaUltimoTicket();
-      handleVerificaTicketImpresso();
+    const authToken = sessionStorage.getItem('authToken');
+    if (!authToken) {
+      navigate('/login'); 
+      return;
+    }
 
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    handleConsultaUltimoTicket();
+    handleVerificaTicketImpresso();
+  
+    // Escuta atualizações de tickets chamados
+    socket.on('ticket_atualizado', (data) => {
+      setTicket(data.ticket_atual);
+      calcularTicketsAChamar(ticketImpresso, data.ticket_atual);
+    });
+  
+    // Escuta atualizações de tickets impressos
+    socket.on('ticket_impresso_atualizado', (data) => {
+      setTicketImpresso(data.ticket_impresso);
+      calcularTicketsAChamar(data.ticket_impresso, ticket);
+    });
+  
+    return () => {
+      socket.off('ticket_atualizado');
+      socket.off('ticket_impresso_atualizado');
+    };
+  }, [ticketImpresso]);
 
   const handleVerificaTicketImpresso = async () => {
     try {
@@ -48,7 +75,7 @@ const Ticket = () => {
       if (response.ok) {
         const data = await response.json();
         calcularTicketsAChamar(data.ticket_atual, ticket);
-        setTicket(data.ticket_atual)
+        setTicket(data.ticket_atual);
       } else {
         console.error('Falha ao obter o número do ticket');
       }
@@ -64,42 +91,52 @@ const Ticket = () => {
 
   const handleChamadaTicket = async () => {
     try {
-      // Verifica se há tickets impressos que podem ser chamados
       if (ticket >= ticketImpresso) {
-        alert("Não há mais tickets para chamar.");
+        setPopupTitle('Erro');
+        setPopupMessage('Não há mais tickets para chamar.');
+        setShowPopup(true); // Mostra o popup se não houver mais tickets
         return;
       }
-      // Envia solicitação para chamar o próximo ticket
+
       const response = await fetch('http://192.168.10.35:9000/chamar_ticket', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
+
       if (response.ok) {
         const data = await response.json();
-        alert(`Chamar ticket: ${data.ticket_atual}`);
+        setPopupTitle('Ticket Chamado');
+        setPopupMessage(`Chamar ticket: ${data.ticket_atual}`);
+        setShowPopup(true);
         setTicket(data.ticket_atual);
         calcularTicketsAChamar(ticketImpresso, data.ticket_atual);
       } else {
-        console.error('Falha ao chamar o ticket');
+        setPopupTitle('Erro');
+        setPopupMessage('Não foi possível chamar o ticket.');
+        setShowPopup(true); // Mostra o popup se a resposta não for ok
       }
     } catch (error) {
       console.error('Erro ao chamar o ticket:', error);
+      setPopupTitle('Erro');
+      setPopupMessage('Erro ao chamar o ticket.');
+      setShowPopup(true); // Mostra o popup em caso de erro
     }
   };
 
-  // Verifica se há tickets disponíveis para chamar
+  const handleClosePopup = () => setShowPopup(false); 
+
   const temTicketsParaChamar = ticket < ticketImpresso;
-  const qtdTicketsParaChamar = ticketImpresso - ticket
+  const qtdTicketsParaChamar = ticketImpresso - ticket;
 
   return (
     <>
       <HamburgerMenu />
       <div className='carouselTicket'>
-        <h1>Ticket Atual: {ticket}</h1>
+        <h1 className='TKTAtual'>Ticket Atual: {ticket}</h1>
         <br/>
-        <h1>Há {qtdTicketsParaChamar} tickets para chamar</h1>
+        <h1 className='TKTFila'>Há {qtdTicketsParaChamar} tickets para chamar</h1>
         <button 
           className='buttonAtendimento'
           onClick={handleChamadaTicket} 
@@ -108,6 +145,13 @@ const Ticket = () => {
           Chamar Ticket
         </button>
       </div>
+      {showPopup && (
+        <Popup 
+          title={popupTitle}
+          message={popupMessage} 
+          onClose={handleClosePopup} 
+        />
+      )}
       <Footer />
     </>
   );

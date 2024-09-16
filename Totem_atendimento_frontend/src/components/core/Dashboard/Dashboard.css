@@ -1,0 +1,10 @@
+.dashboard {
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.TicketDashboard {
+  font-size: 100px;
+}

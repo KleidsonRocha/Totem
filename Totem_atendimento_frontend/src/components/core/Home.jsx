@@ -4,8 +4,6 @@ import HamburgerMenu from '../hamburguerButton/HamburgerMenu';
 import './main.css';
 import Footer from '../footer/footer';
 
-
-
 // Componente Principal
 const Home = () => {
   return (

@@ -1,0 +1,51 @@
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popupContainer {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 80%;
+  max-width: 500px;
+}
+
+.popupTitle {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.ticket-button {
+  font-family: "Gill Sans", sans-serif;
+  color: #fff;
+  cursor: pointer;
+  border: 2rem solid #c42e1a00;
+  background-color: #21c401;
+  border-width: 2rem 1rem; /* 5px top and bottom, 20px on the sides */
+  border-radius: 1rem;
+  font-size: 50px;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+.ticket-button:hover {
+  background-color: #1aab1c;
+}
+
+.messagePopUp {
+  background-color: white;
+  font-weight: 900;
+  font-size: 50px;
+
+}

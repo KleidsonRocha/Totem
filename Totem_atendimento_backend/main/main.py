@@ -1,35 +1,87 @@
-from flask import Flask, request, jsonify
+from flask import request, Flask, jsonify
 from flask_cors import CORS
-from reportlab.lib.pagesizes import A4, A3
-from reportlab.lib import colors
+from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text  
+from dotenv import load_dotenv
+from threading import Lock
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from threading import Lock
 import win32print
 import win32api
 import os
 import tempfile
 import time
 import datetime
+import hashlib
 
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configura a impressora
 lista_impressora = win32print.EnumPrinters(2)
-
 impressora = lista_impressora[2]
-
 print(impressora)
-
 win32print.SetDefaultPrinter(impressora[2])
 
 # Variável global para o controle do número de atendimento e ticket atual
-ticket_number = 1
+ticket_number = 0
 ticket_atual = 0
 lock = Lock()
+
+# Configuração da URL do banco de dados
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Opcional, desativa o rastreamento de modificações
+db = SQLAlchemy(app)
+
+class Usuario(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+
+@app.route('/postgressql/login', methods=['POST'])
+def login():
+   data = request.json
+   username = data.get('username')
+   password = data.get('password')
+
+   # Consulta o usuário pelo nome de usuário
+   sql = text("SELECT cd_usuario, login, senha FROM public.usuario WHERE login = :username;")
+   result = db.session.execute(sql, {'username': username})
+   usuario = result.fetchone()  # Obtém um único resultado
+
+
+   if usuario is None:
+         return jsonify({'error': 'Usuário não encontrado'}), 404
+
+   stored_password_hash = usuario.senha
+
+   # Codifica a senha fornecida pelo usuário em bytes e calcula o hash MD5
+   md5_password = hashlib.md5(password.encode()).hexdigest().upper()
+
+   if md5_password == stored_password_hash:
+      user_data = {
+         'cd_usuario': usuario.cd_usuario,
+         'login': usuario.login,
+        }
+      return jsonify({'success': user_data}), 200
+   else:
+        return jsonify({'error': 'Senha incorreta'}), 401
+
+
+@app.route('/postgressql/pedidos', methods=['GET'])
+def pedidos():
+  
+
+   sql = text("SELECT cd_usuario, login, senha FROM public.usuario WHERE login = :username;")
+   result = db.session.execute(sql, {'username': username})
+   usuario = result.fetchone()  # Obtém um único resultado
+
+
 
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
@@ -55,7 +107,6 @@ def salvar_ticket():
    except Exception as e:
       return jsonify({'error': str(e)}), 500
 
-
 @app.route('/imprimir_atendimento', methods=['POST'])
 def imprimir_atendimento():
    global ticket_number  # Usa uma variável global para incrementar o número
@@ -66,7 +117,7 @@ def imprimir_atendimento():
       ticket_number += 1
 
       # Configura o caminho do arquivo temporário para o PDF
-      caminho_temp = os.path.join(tempfile.gettempdir(), f"atendimento_{numero_atendimento}.pdf")
+      caminho_temp = os.path.join(tempfile.gettempdir(), f"atendimento_{numero_atendimento + 1}.pdf")
 
       # Defina o tamanho personalizado em milímetros
       largura_mm = 110  # 75 mm de largura
@@ -112,7 +163,7 @@ def imprimir_atendimento():
 
       # Adiciona os elementos ao PDF
       elements.append(imagem)
-      elements.append(Paragraph(f"{numero_atendimento}", estilo_titulo))
+      elements.append(Paragraph(f"{numero_atendimento + 1}", estilo_titulo))
       elements.append(Spacer(10, 50))
       elements.append(Paragraph("Conheça nossa plataforma digital:", texto))
       elements.append(Paragraph("b2b.soccolbarbieri.com.br", texto))
@@ -128,6 +179,9 @@ def imprimir_atendimento():
 
       # Exclui o arquivo temporário após a impressão
       os.remove(caminho_temp)
+
+      # Envia uma atualização via WebSocket informando que um novo ticket foi impresso
+      socketio.emit('ticket_impresso_atualizado', {'ticket_impresso': ticket_number})
 
       # Retorna o número do atendimento gerado ao front-end
       return jsonify({'message': 'PDF gerado e impresso com sucesso!', 'numero': numero_atendimento}), 200
@@ -157,8 +211,16 @@ def chamar_ticket():
 
     with lock:
         ticket_atual += 1
+        socketio.emit('ticket_atualizado', {"ticket_atual": ticket_atual})  # Envia atualização via WebSocket
         return jsonify({"ticket_atual": ticket_atual, "message": f"Ticket {ticket_atual} chamado com sucesso!"}), 200
 
+@socketio.on('connect')
+def handle_connect():
+    print('Cliente conectado')
+
+    # Enviar os valores atuais para o cliente
+    socketio.emit('ticket_atualizado', {'ticket_atual': ticket_atual})
+    socketio.emit('ticket_impresso_atualizado', {'ticket_impresso': ticket_number})
 
 if __name__ == '__main__':
    app.run(debug=True, host='0.0.0.0', port=9000)

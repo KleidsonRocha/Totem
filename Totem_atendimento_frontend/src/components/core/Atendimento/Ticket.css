@@ -6,13 +6,37 @@
   color: white;
 }
 
-.buttonAtendimento {
-  padding: 2rem;
-  border-radius: 1rem;
-  background-color: white;
-  color: red;
+.TKTAtual {
+  font-size:70px;
+  
 }
 
+.TKTFila {
+  font-size: 70px;
+}
+
+.buttonAtendimento {
+  font-size: 60px;
+  padding: 2rem 5rem;
+  border-radius: 1rem;
+  background-color: white;
+  color: rgb(0, 0, 0);
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+/* Quando o botão está habilitado */
+.buttonAtendimento:hover {
+  background-color: red;
+  color: white;
+  transform: scale(1.05); /* Um leve aumento no hover para chamar atenção */
+}
+
+/* Quando o botão está desabilitado */
 .buttonAtendimento:disabled {
-    background-color: rgb(197, 197, 197);
+  background-color: rgb(197, 197, 197);
+  color: gray;
+  border: 2px solid gray;
+  cursor: not-allowed;
+  transform: none; /* Sem animação quando desabilitado */
 }

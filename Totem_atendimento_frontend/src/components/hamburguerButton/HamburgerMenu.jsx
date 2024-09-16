@@ -4,6 +4,13 @@ import './HamburgerMenu.css';
 const HamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);  // Cria uma referência para o menu
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Verifica se o usuário está autenticado
+    const token = sessionStorage.getItem('authToken');
+    setIsAuthenticated(!!token); // Define o estado baseado na presença do token
+  }, []);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -33,9 +40,19 @@ const HamburgerMenu = () => {
           <div className='bar3'></div>
         </div>
         <div className={`menu-content ${isOpen ? 'open' : ''}`}>
-          <a href="/">Retirar senha</a>
-          <a href="/Ticket">Chamar Ticket</a>
-          <a href="/Devolucao">Devolução de peças</a>
+          {isAuthenticated && (
+            <>
+              <a href="/Ticket">Atendimentos</a>
+              <a href="/Dashboard">Dashboard</a>
+            </>
+          )}
+          {!isAuthenticated && (
+            <>
+              <a href="/">Retirar senha</a> 
+              <a href="/Devolucao">Devolução de peças</a>
+              <a href="/Login">Login</a>
+            </>
+          )}
         </div>
       </div>
     </div>
