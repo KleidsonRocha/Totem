@@ -30,8 +30,16 @@ const Dashboard = () => {
 
   // Função para tocar o som com o número do ticket e nome do atendente
   const playAlertSound = (ticketNumber, attendantName) => {
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.name === 'Microsoft Maria - Portuguese (Brazil)'); // Substitua pelo nome da voz desejada
+    
     const utterance = new SpeechSynthesisUtterance(`Ticket número ${ticketNumber} atendido por ${attendantName}`);
-    utterance.lang = 'pt-BR'; // Define o idioma se necessário
+    utterance.lang = 'pt-BR'; // Define o idioma
+    
+    if (voice) {
+      utterance.voice = voice;
+    }
+  
     window.speechSynthesis.speak(utterance);
   };
 
