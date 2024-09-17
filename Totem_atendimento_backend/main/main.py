@@ -12,6 +12,7 @@ import win32print
 import win32api
 import os
 import tempfile
+import threading
 import time
 import datetime
 import hashlib
@@ -31,6 +32,7 @@ win32print.SetDefaultPrinter(impressora[2])
 # Variável global para o controle do número de atendimento e ticket atual
 ticket_number = 0
 ticket_atual = 0
+latest_pedidos = []
 lock = Lock()
 
 # Configuração da URL do banco de dados
@@ -72,14 +74,62 @@ def login():
    else:
         return jsonify({'error': 'Senha incorreta'}), 401
 
+def consultar_pedidos_periodicamente():
+    global latest_pedidos
+    with app.app_context():  # Cria o contexto da aplicação Flask para essa thread
+        while True:
+            # Define a consulta SQL
+            sql = text("""
+                SELECT DISTINCT 
+                    ltrim((SUBSTRING(public.pedido_venda_afv.nr_pedido_afv FROM 3 FOR 20)),'0') AS pedido,
+                    public.situacao_pedido_venda.cd_situacao,
+                    public.situacao_pedido_venda.nm_situacao,
+                    public.tarefa_monitor.id_origem_tarefa,
+                    public.tarefa_monitor.nm_tarefa_monitor,
+                    public.pedido_venda.id_geral AS id_pedido_soccol,
+                    public.pedido_venda.cd_filial,
+                    public.pedido_venda.dt_atz 
+                FROM
+                    public.pedido_venda
+                    LEFT JOIN public.situacao_pedido_venda 
+                        ON public.pedido_venda.cd_situacao = public.situacao_pedido_venda.cd_situacao
+                    LEFT JOIN public.pedido_venda_afv 
+                        ON public.pedido_venda.id_geral = public.pedido_venda_afv.id_pedido_venda_gerado
+                    LEFT JOIN public.tarefa_monitor 
+                        ON public.pedido_venda.id_geral = public.tarefa_monitor.id_origem_tarefa
+                WHERE
+                    public.pedido_venda.cd_filial = 1
+                    AND public.pedido_venda.dt_emissao >= current_timestamp - INTERVAL '1 day'
+                    AND public.pedido_venda.cd_operacao IN ('501')
+                    AND public.situacao_pedido_venda.cd_situacao IN ('40')
+                    AND public.tarefa_monitor.cd_monitor = 111 
+                ORDER BY
+                    public.pedido_venda.dt_atz DESC
+            """)
 
-@app.route('/postgressql/pedidos', methods=['GET'])
-def pedidos():
-  
+            # Executa a consulta no banco de dados
+            result = db.session.execute(sql)
 
-   sql = text("SELECT cd_usuario, login, senha FROM public.usuario WHERE login = :username;")
-   result = db.session.execute(sql, {'username': username})
-   usuario = result.fetchone()  # Obtém um único resultado
+            # Converte os resultados em uma lista de dicionários
+            pedidos_atual = []
+            for row in result:
+                pedidos_atual.append({
+                    "pedido": row[0],
+                    "cd_situacao": row[1],
+                    "nm_situacao": row[2],
+                    "id_origem_tarefa": row[3],
+                    "nm_tarefa_monitor": row[4],
+                    "id_pedido_soccol": row[5],
+                    "cd_filial": row[6],
+                    "dt_atz": row[7].isoformat() if row[7] else None
+                })
+
+            if pedidos_atual != latest_pedidos:
+                latest_pedidos = pedidos_atual
+                socketio.emit('atualizacao_pedidos', pedidos_atual)
+
+
+            time.sleep(15)
 
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
@@ -222,9 +272,21 @@ def handle_connect():
 
 @socketio.on('novo_ticket_chamado')
 def handle_novo_ticket_chamado(data):
+    
     print(f'Novo ticket chamado: {data}')
     # Emite o evento para todos os clientes conectados
     socketio.emit('novo_ticket_chamado', data)
 
+@socketio.on('/postgressql/pedidos')
+def pedidos():
+    # Quando o cliente se conectar, ele receberá os pedidos atuais
+    socketio.emit('atualizacao_pedidos', latest_pedidos)
+
+def iniciar_background_task():
+    thread = threading.Thread(target=consultar_pedidos_periodicamente)
+    thread.daemon = True
+    thread.start()
+
 if __name__ == '__main__':
+   iniciar_background_task()
    app.run(debug=True, host='0.0.0.0', port=9000)

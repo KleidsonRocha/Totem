@@ -10,6 +10,7 @@ const socket = io('http://192.168.10.35:9000');
 const Dashboard = () => {
   const [ticket, setTicket] = useState(0);
   const [attendantName, setAttendantName] = useState('');
+  const [pedidos, setPedidos] = useState([]);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -22,9 +23,15 @@ const Dashboard = () => {
       setAttendantName(data.attendantName);
       playAlertSound(data.ticketNumber, data.attendantName);
     });
+
+    socket.on('atualizacao_pedidos', (data) => {      
+      console.log(data);
+      setPedidos(data)
+    });
   
     return () => {
       socket.off('novo_ticket_chamado');
+      socket.off('atualizacao_pedidos');
     };
   }, []);
 
@@ -47,8 +54,22 @@ const Dashboard = () => {
     <>
       <HamburgerMenu />
       <div className='dashboard'>
-        <h1 className='TicketDashboard'>Ticket Chamado: {ticket}</h1>
-        <h1 className='TicketDashboard'>Atendente: {attendantName}</h1>
+        <div className='dashboardTicket'>
+          <h1 className='Ticket'>Ticket</h1>
+          <h1 className='Ticket'>{ticket}</h1>
+          <h1 className='Ticket'>Atendente</h1>  
+          <h1 className='Ticket'>{attendantName}</h1>  
+        </div>
+        <ul className='dashboardPedidos'>
+          {pedidos.map((pedido, index) => (
+            <li key={index}>
+              <p className='dashboardPedidosItem'>{pedido.nm_tarefa_monitor}</p>
+            </li>
+          ))}
+        </ul>
+        <div>
+          <img src="src\assets\SOCCOL.png" alt="logo_soccol" className='dashboardImg'/>
+        </div>
       </div>
       <Footer />
     </>
