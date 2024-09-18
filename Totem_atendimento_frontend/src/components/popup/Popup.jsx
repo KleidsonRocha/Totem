@@ -6,7 +6,7 @@ const Popup = ({ message, onClose }) => {
     <div className="popupOverlay">
       <div className="popupContainer">
         <p className='messagePopUp'>{message}</p>
-        <button className="ticket-button" onClick={onClose}>Fechar</button>
+        <button className="ticketButtonPopUp" onClick={onClose}>Fechar</button>
       </div>
     </div>
   );

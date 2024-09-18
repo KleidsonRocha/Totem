@@ -3,14 +3,16 @@ import HamburgerMenu from '../../hamburguerButton/HamburgerMenu';
 import Footer from '../../footer/footer';
 import { io } from 'socket.io-client';
 import './Dashboard.css';
+import { ENDPOINTS } from '../../../config';
 
-const socket = io('http://192.168.10.35:9000');
+const socket = io(ENDPOINTS.socketIO);
 
 // Componente Principal
 const Dashboard = () => {
   const [ticket, setTicket] = useState(0);
   const [attendantName, setAttendantName] = useState('');
   const [pedidos, setPedidos] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -24,9 +26,10 @@ const Dashboard = () => {
       playAlertSound(data.ticketNumber, data.attendantName);
     });
 
-    socket.on('atualizacao_pedidos', (data) => {      
+    socket.on('atualizacao_pedidos', (data) => {   
       console.log(data);
-      setPedidos(data)
+      setPedidos(data);
+      setCurrentIndex(0); // Resetar o índice quando a lista de pedidos for atualizada
     });
   
     return () => {
@@ -35,20 +38,34 @@ const Dashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    // Atualiza o índice a cada 5 segundos
+    const interval = setInterval(() => {
+      setCurrentIndex(prevIndex => {
+        const nextIndex = prevIndex + 3;
+        return nextIndex < pedidos.length ? nextIndex : 0;
+      });
+    }, 5000); // Intervalo de 5 segundos
+
+    return () => clearInterval(interval);
+  }, [pedidos]);
+
   // Função para tocar o som com o número do ticket e nome do atendente
   const playAlertSound = (ticketNumber, attendantName) => {
     const voices = window.speechSynthesis.getVoices();
     const voice = voices.find(v => v.name === 'Microsoft Maria - Portuguese (Brazil)'); // Substitua pelo nome da voz desejada
-    
+   
     const utterance = new SpeechSynthesisUtterance(`Ticket número ${ticketNumber} atendido por ${attendantName}`);
     utterance.lang = 'pt-BR'; // Define o idioma
-    
+   
     if (voice) {
       utterance.voice = voice;
     }
   
     window.speechSynthesis.speak(utterance);
   };
+
+  const pedidosParaExibir = pedidos.slice(currentIndex, currentIndex + 3);
 
   return (
     <>
@@ -61,15 +78,13 @@ const Dashboard = () => {
           <h1 className='Ticket'>{attendantName}</h1>  
         </div>
         <ul className='dashboardPedidos'>
-          {pedidos.map((pedido, index) => (
+          {pedidosParaExibir.map((pedido, index) => (
             <li key={index}>
               <p className='dashboardPedidosItem'>{pedido.nm_tarefa_monitor}</p>
             </li>
           ))}
         </ul>
-        <div>
-          <img src="src\assets\SOCCOL.png" alt="logo_soccol" className='dashboardImg'/>
-        </div>
+
       </div>
       <Footer />
     </>

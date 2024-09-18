@@ -1,9 +1,19 @@
 .dashboard {
   color: white;
   display: flex;
-  align-items: center;
-  justify-content: space-evenly;
+  justify-content: space-between; 
+  align-items: center; 
   margin: 0;
+  height: 100vh; 
+  padding: 0 2rem; 
+}
+
+.dashboardTicket {
+  flex: 1 1 25%; /* Ocupa 25% da largura */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .dashboardTicket {
@@ -14,33 +24,70 @@
 }
 
 .Ticket {
-  font-size: 150px;
+  font-size: 170px;
   margin: 0;
-  padding-right: 3rem;
+}
+
+.dashboardPedidosContainer {
+  overflow: hidden; 
+  height: 100%; 
+  width: 100%; 
+  display: flex;
+  align-items: center; 
 }
 
 .dashboardPedidos {
-  list-style: none; 
+  flex: 1 1 75%; /* Ocupa 50% da largura */
+  list-style: none;
   padding: 0;
-  margin: 0; 
-  display: flex; 
-  flex-direction: column; 
-  align-items: left;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-
-.dashboardPedidosItem {
-  font-size: 80px;
+.dashboardPedidos li {
+  margin: 1rem 0;
 }
 
 .dashboardPedidosItem {
-  font-size: 80px; 
-  text-align: left; 
-  color: white; 
+  font-size: 120px;
+  font-weight: 600;
+  text-align: center;
+  color: white;
+}
+
+.dashboardImgContainer {
+  flex: 1 1 25%; /* Ocupa 25% da largura */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dashboardImg {
-  padding: 5rem;
   width: 20rem;
   height: 8rem;
+}
+
+.fade-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 500ms ease-in-out, transform 500ms ease-in-out;
+}
+
+.fade-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 500ms ease-in-out, transform 500ms ease-in-out;
 }

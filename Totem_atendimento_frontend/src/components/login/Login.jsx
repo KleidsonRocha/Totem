@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../hamburguerButton/HamburgerMenu';
 import Footer from '../footer/footer';
 import './Login.css'
+import { ENDPOINTS } from '../../config';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -14,7 +15,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://192.168.10.35:9000/postgressql/login', {
+      const response = await fetch(ENDPOINTS.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

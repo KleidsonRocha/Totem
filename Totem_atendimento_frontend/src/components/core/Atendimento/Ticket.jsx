@@ -5,8 +5,9 @@ import HamburgerMenu from '../../hamburguerButton/HamburgerMenu';
 import Footer from '../../footer/footer';
 import "./Ticket.css";
 import Popup from '../../popup/Popup';
+import { ENDPOINTS } from '../../../config';
 
-const socket = io('http://192.168.10.35:9000');
+const socket = io(ENDPOINTS.socketIO);
 
 const Ticket = () => {
   const [ticketImpresso, setTicketImpresso] = useState(0);
@@ -48,7 +49,7 @@ const Ticket = () => {
 
   const handleVerificaTicketImpresso = async () => {
     try {
-      const response = await fetch('http://192.168.10.35:9000/ticket_impresso', {
+      const response = await fetch(ENDPOINTS.ticketImpresso, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ const Ticket = () => {
 
   const handleConsultaUltimoTicket = async () => {
     try {
-      const response = await fetch('http://192.168.10.35:9000/ticket_atual', {
+      const response = await fetch(ENDPOINTS.ticketAtual, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ const Ticket = () => {
         return;
       }
   
-      const response = await fetch('http://192.168.10.35:9000/chamar_ticket', {
+      const response = await fetch(ENDPOINTS.chamarTicket, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

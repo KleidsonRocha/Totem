@@ -8,14 +8,17 @@ from threading import Lock
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
+from collections import defaultdict
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime
 import win32print
 import win32api
 import os
 import tempfile
 import threading
 import time
-import datetime
 import hashlib
+import json
 
 load_dotenv()
 
@@ -33,6 +36,7 @@ win32print.SetDefaultPrinter(impressora[2])
 ticket_number = 0
 ticket_atual = 0
 latest_pedidos = []
+tickets_por_atendente = defaultdict(int)
 lock = Lock()
 
 # Configuração da URL do banco de dados
@@ -73,63 +77,6 @@ def login():
       return jsonify({'success': user_data}), 200
    else:
         return jsonify({'error': 'Senha incorreta'}), 401
-
-def consultar_pedidos_periodicamente():
-    global latest_pedidos
-    with app.app_context():  # Cria o contexto da aplicação Flask para essa thread
-        while True:
-            # Define a consulta SQL
-            sql = text("""
-                SELECT DISTINCT 
-                    ltrim((SUBSTRING(public.pedido_venda_afv.nr_pedido_afv FROM 3 FOR 20)),'0') AS pedido,
-                    public.situacao_pedido_venda.cd_situacao,
-                    public.situacao_pedido_venda.nm_situacao,
-                    public.tarefa_monitor.id_origem_tarefa,
-                    public.tarefa_monitor.nm_tarefa_monitor,
-                    public.pedido_venda.id_geral AS id_pedido_soccol,
-                    public.pedido_venda.cd_filial,
-                    public.pedido_venda.dt_atz 
-                FROM
-                    public.pedido_venda
-                    LEFT JOIN public.situacao_pedido_venda 
-                        ON public.pedido_venda.cd_situacao = public.situacao_pedido_venda.cd_situacao
-                    LEFT JOIN public.pedido_venda_afv 
-                        ON public.pedido_venda.id_geral = public.pedido_venda_afv.id_pedido_venda_gerado
-                    LEFT JOIN public.tarefa_monitor 
-                        ON public.pedido_venda.id_geral = public.tarefa_monitor.id_origem_tarefa
-                WHERE
-                    public.pedido_venda.cd_filial = 1
-                    AND public.pedido_venda.dt_emissao >= current_timestamp - INTERVAL '1 day'
-                    AND public.pedido_venda.cd_operacao IN ('501')
-                    AND public.situacao_pedido_venda.cd_situacao IN ('40')
-                    AND public.tarefa_monitor.cd_monitor = 111 
-                ORDER BY
-                    public.pedido_venda.dt_atz DESC
-            """)
-
-            # Executa a consulta no banco de dados
-            result = db.session.execute(sql)
-
-            # Converte os resultados em uma lista de dicionários
-            pedidos_atual = []
-            for row in result:
-                pedidos_atual.append({
-                    "pedido": row[0],
-                    "cd_situacao": row[1],
-                    "nm_situacao": row[2],
-                    "id_origem_tarefa": row[3],
-                    "nm_tarefa_monitor": row[4],
-                    "id_pedido_soccol": row[5],
-                    "cd_filial": row[6],
-                    "dt_atz": row[7].isoformat() if row[7] else None
-                })
-
-            if pedidos_atual != latest_pedidos:
-                latest_pedidos = pedidos_atual
-                socketio.emit('atualizacao_pedidos', pedidos_atual)
-
-
-            time.sleep(15)
 
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
@@ -272,7 +219,13 @@ def handle_connect():
 
 @socketio.on('novo_ticket_chamado')
 def handle_novo_ticket_chamado(data):
+    #{'ticketNumber': 1, 'attendantName': 'KLEIDSON'}
+    attendant_name = data['attendantName']
     
+    # Incrementa o contador para o atendente específico
+    tickets_por_atendente[attendant_name] += 1
+
+    print(f'{attendant_name} chamou mais um ticket. Total atual: {tickets_por_atendente[attendant_name]}')
     print(f'Novo ticket chamado: {data}')
     # Emite o evento para todos os clientes conectados
     socketio.emit('novo_ticket_chamado', data)
@@ -287,6 +240,98 @@ def iniciar_background_task():
     thread.daemon = True
     thread.start()
 
+def salvar_dados():
+    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    if not tickets_por_atendente:
+        print('sem ticket')
+        return
+
+    # Diretório para salvar os arquivos
+    directory = 'Tickets'
+    
+    # Cria o diretório, se ele não existir
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
+    # Caminho completo do arquivo
+    file_path = os.path.join(directory, f'tickets_{now}.json')
+    
+    # Verifica o conteúdo antes de salvar
+    print("Conteúdo de tickets_por_atendente antes de salvar:", tickets_por_atendente)
+    
+    
+    # Salva os dados em um arquivo JSON
+    with open(file_path, 'w') as file:
+        json.dump(tickets_por_atendente, file, indent=4)
+    
+    print(f"Dados salvos no arquivo {file_path}")
+    
+    # Limpa os dados para a próxima contagem
+    tickets_por_atendente.clear()
+
+def consultar_pedidos_periodicamente():
+    global latest_pedidos
+    with app.app_context():  # Cria o contexto da aplicação Flask para essa thread
+        while True:
+            # Define a consulta SQL
+            sql = text("""
+                SELECT DISTINCT 
+                    ltrim((SUBSTRING(public.pedido_venda_afv.nr_pedido_afv FROM 3 FOR 20)),'0') AS pedido,
+                    public.situacao_pedido_venda.cd_situacao,
+                    public.situacao_pedido_venda.nm_situacao,
+                    public.tarefa_monitor.id_origem_tarefa,
+                    public.tarefa_monitor.nm_tarefa_monitor,
+                    public.pedido_venda.id_geral AS id_pedido_soccol,
+                    public.pedido_venda.cd_filial,
+                    public.pedido_venda.dt_atz 
+                FROM
+                    public.pedido_venda
+                    LEFT JOIN public.situacao_pedido_venda 
+                        ON public.pedido_venda.cd_situacao = public.situacao_pedido_venda.cd_situacao
+                    LEFT JOIN public.pedido_venda_afv 
+                        ON public.pedido_venda.id_geral = public.pedido_venda_afv.id_pedido_venda_gerado
+                    LEFT JOIN public.tarefa_monitor 
+                        ON public.pedido_venda.id_geral = public.tarefa_monitor.id_origem_tarefa
+                WHERE
+                    public.pedido_venda.cd_filial = 1
+                    AND public.pedido_venda.dt_emissao >= current_timestamp - INTERVAL '1 day'
+                    AND public.pedido_venda.cd_operacao IN ('501')
+                    AND public.situacao_pedido_venda.cd_situacao IN ('40')
+                    AND public.tarefa_monitor.cd_monitor = 111 
+                ORDER BY
+                    public.pedido_venda.dt_atz DESC
+            """)
+
+            # Executa a consulta no banco de dados
+            result = db.session.execute(sql)
+
+            # Converte os resultados em uma lista de dicionários
+            pedidos_atual = []
+            for row in result:
+                pedidos_atual.append({
+                    "pedido": row[0],
+                    "cd_situacao": row[1],
+                    "nm_situacao": row[2],
+                    "id_origem_tarefa": row[3],
+                    "nm_tarefa_monitor": row[4],
+                    "id_pedido_soccol": row[5],
+                    "cd_filial": row[6],
+                    "dt_atz": row[7].isoformat() if row[7] else None
+                })
+
+            if pedidos_atual != latest_pedidos:
+                latest_pedidos = pedidos_atual
+                socketio.emit('atualizacao_pedidos', pedidos_atual)
+
+
+            time.sleep(15)
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(salvar_dados, 'cron', hour=12, minute=0)
+scheduler.add_job(salvar_dados, 'cron', hour=18, minute=0)
+
 if __name__ == '__main__':
    iniciar_background_task()
+   scheduler.start()
    app.run(debug=True, host='0.0.0.0', port=9000)
