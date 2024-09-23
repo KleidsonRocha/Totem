@@ -61,9 +61,9 @@ function ButtonTicket() {
       <button
         onClick={handleGenerateTicket}
         disabled={isDisabled} // Botão é desativado enquanto a requisição está sendo feita
-        className={`ticket-button ${isDisabled ? 'ticket-button-disabled' : ''}`} // Aplica o estilo de desativado
+        className={`ticket-button ${isDisabled ? 'ticket-button-disabled' : ''}`}
       >
-        {isDisabled ? 'Imprimindo...' : 'Clique aqui para gerar uma senha'} {/* Texto do botão muda */}
+        {isDisabled ? 'Imprimindo...' : 'Clique aqui para gerar uma senha'} 
       </button>
     </div>
   );
