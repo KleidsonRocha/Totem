@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../hamburguerButton/HamburgerMenu';
 import Footer from '../footer/footer';
-import './Login.css'
+import './Login.css';
 import { ENDPOINTS } from '../../config';
 
 const Login = () => {
@@ -21,22 +21,23 @@ const Login = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          username,
+          username: username.toUpperCase(), 
           password
         })
       });
-    
+
       if (!response.ok) {
         throw new Error('Erro ao fazer login');
       }
-    
+
       const data = await response.json();
 
       sessionStorage.setItem('authToken', data.success.cd_usuario);
       sessionStorage.setItem('userData', data.success.login);
+      sessionStorage.setItem('Nome', data.success.nome_funcionario.split(' ')[0]);
 
       navigate('/Ticket'); 
-  
+
     } catch (error) {
       setError('Erro ao fazer login. Verifique suas credenciais.');
     }
@@ -54,7 +55,7 @@ const Login = () => {
               type="text"
               id="username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value.toUpperCase())} 
               required
             />
           </div>

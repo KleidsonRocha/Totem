@@ -72,7 +72,7 @@ const Dashboard = () => {
       <HamburgerMenu />
       <div className='dashboard'>
         <div className='dashboardTicket'>
-          <h1 className='Ticket'>Ticket</h1>
+          <h1 className='Ticket'>Número</h1>
           <h1 className='Ticket'>{ticket}</h1>
           <h1 className='Ticket'>Atendente</h1>  
           <h1 className='Ticket'>{attendantName}</h1>  

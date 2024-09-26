@@ -45,6 +45,11 @@ form {
   margin-bottom: 1rem;
 }
 
+#username {
+  text-transform: uppercase;
+}
+
+
 .botaoLogin[type="submit"] {
   display: block;
   width: 100%;

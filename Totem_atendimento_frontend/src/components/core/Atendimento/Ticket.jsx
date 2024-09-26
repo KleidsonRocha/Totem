@@ -16,7 +16,7 @@ const Ticket = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupTitle, setPopupTitle] = useState('');
   const [popupMessage, setPopupMessage] = useState('');
-  const authToken = sessionStorage.getItem('userData');
+  const authToken = sessionStorage.getItem('Nome');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -118,7 +118,7 @@ const Ticket = () => {
         // Emite o evento para notificar o Dashboard
         socket.emit('novo_ticket_chamado', {
           ticketNumber: data.ticket_atual,
-          attendantName: authToken // Certifique-se de que authToken contém o nome do atendente
+          attendantName: authToken 
         });
       } else {
         setPopupTitle('Erro');

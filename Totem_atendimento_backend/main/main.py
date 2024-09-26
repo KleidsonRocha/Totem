@@ -56,7 +56,7 @@ def login():
    password = data.get('password')
 
    # Consulta o usuário pelo nome de usuário
-   sql = text("SELECT cd_usuario, login, senha FROM public.usuario WHERE login = :username;")
+   sql = text("SELECT DISTINCT u.cd_usuario, u.login, u.senha, f.nm_funcionario FROM public.usuario u INNER JOIN public.funcionario f ON u.cd_funcionario = f.cd_funcionario WHERE u.login = :username;")
    result = db.session.execute(sql, {'username': username})
    usuario = result.fetchone()  # Obtém um único resultado
 
@@ -73,6 +73,7 @@ def login():
       user_data = {
          'cd_usuario': usuario.cd_usuario,
          'login': usuario.login,
+         'nome_funcionario': usuario.nm_funcionario
         }
       return jsonify({'success': user_data}), 200
    else:
