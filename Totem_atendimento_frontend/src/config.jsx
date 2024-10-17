@@ -1,5 +1,5 @@
 // src/config.js
-const API_BASE_URL = 'http://192.168.10.35:9000';
+const API_BASE_URL = 'http://192.168.10.57:9000';
 
 export const ENDPOINTS = {
   imprimirAtendimento: `${API_BASE_URL}/imprimir_atendimento`,

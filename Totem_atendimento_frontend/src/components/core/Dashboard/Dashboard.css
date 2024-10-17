@@ -91,3 +91,8 @@
   transform: scale(0.9);
   transition: opacity 500ms ease-in-out, transform 500ms ease-in-out;
 }
+
+.pedidoTitulo {
+  font-size: 120px;
+  font-weight: 600;
+}

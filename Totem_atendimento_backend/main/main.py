@@ -28,7 +28,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configura a impressora
 lista_impressora = win32print.EnumPrinters(2)
-impressora = lista_impressora[2]
+impressora = lista_impressora[1]
 print(impressora)
 win32print.SetDefaultPrinter(impressora[2])
 
@@ -278,14 +278,7 @@ def consultar_pedidos_periodicamente():
             # Define a consulta SQL
             sql = text("""
                 SELECT DISTINCT 
-                    ltrim((SUBSTRING(public.pedido_venda_afv.nr_pedido_afv FROM 3 FOR 20)),'0') AS pedido,
-                    public.situacao_pedido_venda.cd_situacao,
-                    public.situacao_pedido_venda.nm_situacao,
-                    public.tarefa_monitor.id_origem_tarefa,
                     public.tarefa_monitor.nm_tarefa_monitor,
-                    public.pedido_venda.id_geral AS id_pedido_soccol,
-                    public.pedido_venda.cd_filial,
-                    public.pedido_venda.dt_atz 
                 FROM
                     public.pedido_venda
                     LEFT JOIN public.situacao_pedido_venda 
