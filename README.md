@@ -33,7 +33,7 @@ as necessidade de coleta de dados dos atendentes para produção de relatorios p
     ```
 4. Instale as dependências:
   ```bash
-  pip install -r requirements.txt
+  pip install Flask==2.1.1 Flask-CORS==3.0.10 Flask-SocketIO==5.1.1 Flask-SQLAlchemy==2.5.1 SQLAlchemy==1.4.32 python-dotenv==0.19.2 reportlab==3.6.3 pywin32==302 APScheduler==3.7.0
   ```
 
 
