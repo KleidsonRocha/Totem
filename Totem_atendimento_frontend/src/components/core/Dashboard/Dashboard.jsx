@@ -78,7 +78,7 @@ const Dashboard = () => {
           <h1 className='Ticket'>{attendantName}</h1>  
         </div>
         <ul className='dashboardPedidos'>
-        <h1 className='pedidoTitulo'>Pedidos pronto para pagamento</h1>
+        <h1 className='pedidoTitulo'>Pedidos prontos</h1>
           {pedidosParaExibir.map((pedido, index) => (
             <li key={index}>
               <p className='dashboardPedidosItem'>{pedido.nm_tarefa_monitor}</p>

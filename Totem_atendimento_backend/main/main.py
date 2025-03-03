@@ -221,8 +221,11 @@ def handle_connect():
 @socketio.on('novo_ticket_chamado')
 def handle_novo_ticket_chamado(data):
     #{'ticketNumber': 1, 'attendantName': 'KLEIDSON'}
-    attendant_name = data['attendantName']
-    
+    if data['attendantName'] == 'ERIVELTON':
+        attendant_name = 'ZEN'
+    else:
+        attendant_name = data['attendantName']
+
     # Incrementa o contador para o atendente específico
     tickets_por_atendente[attendant_name] += 1
 
@@ -242,6 +245,7 @@ def iniciar_background_task():
     thread.start()
 
 def salvar_dados():
+    global ticket_number, ticket_atual
     now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
     if not tickets_por_atendente:
@@ -270,6 +274,10 @@ def salvar_dados():
     
     # Limpa os dados para a próxima contagem
     tickets_por_atendente.clear()
+    
+    ticket_number = 0
+    ticket_atual = 0
+    print('Número de tickets resetado para 0')
 
 def consultar_pedidos_periodicamente():
     global latest_pedidos
