@@ -6,9 +6,8 @@ function ButtonTicket() {
   const [isDisabled, setIsDisabled] = useState(false);
 
   const handleGenerateTicket = async () => {
-    if (isDisabled) return; // Previne cliques duplos
-
-    setIsDisabled(true); // Desativa o botão
+    if (isDisabled) return;
+    setIsDisabled(true);
 
     try {
       const response = await fetch(ENDPOINTS.imprimirAtendimento, {
@@ -27,9 +26,23 @@ function ButtonTicket() {
     } catch (error) {
       console.error('Erro ao enviar a requisição:', error);
     } finally {
-      setIsDisabled(false); // Reativa o botão após o término da requisição
+      setIsDisabled(false);
     }
   };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      handleGenerateTicket();
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDisabled]);
 
   const saveTickets = async () => {
     try {
@@ -60,10 +73,10 @@ function ButtonTicket() {
     <div className="ticketContainer">
       <button
         onClick={handleGenerateTicket}
-        disabled={isDisabled} // Botão é desativado enquanto a requisição está sendo feita
+        disabled={isDisabled}
         className={`ticket-button ${isDisabled ? 'ticket-button-disabled' : ''}`}
       >
-        {isDisabled ? 'Imprimindo...' : 'Clique aqui para gerar uma senha'} 
+        {isDisabled ? 'Imprimindo...' : 'Clique aqui para gerar uma senha'}
       </button>
     </div>
   );
