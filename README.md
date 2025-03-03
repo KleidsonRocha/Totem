@@ -1,20 +1,19 @@
 ## Descrição
-Este projeto é um sistema de atendimento automatizado utilizando um totem interativo. Ele permite que os usuários realizem diversas operações de forma autônoma.
+Este projeto tem como objetivo criar um sistema de impressão de ticket de forma customizavel. Ele pode atender as dimensões de qualquer impressora, podendo tambem
+as necessidade de coleta de dados dos atendentes para produção de relatorios posteriores
 
 ## Funcionalidades
-- Consulta de informações
-- Agendamento de serviços
 - Emissão de senhas
-- Atendimento personalizado
+- Impressão de tickets personalizaveis
+- Relatorios de atendimentos
 
-## Como Rodar
+## Como Rodar | Instalação do Ambiente Virtual
 
-## Instalação do Ambiente Virtual
+## Pré-requisitos
+- Node.js instalado
+- NPM instalado
 
-### Pré-requisitos
-- Python instalado
-
-### Passos para criação do ambiente virtual
+### Passos para criação do ambiente virtual do backEnd
 1. Navegue até o diretório do projeto:
   ```bash
   cd totem-atendimento
@@ -38,10 +37,6 @@ Este projeto é um sistema de atendimento automatizado utilizando um totem inter
   ```
 
 
-### Pré-requisitos
-- Node.js instalado
-- NPM instalado
-
 ### Passos para execução
 1. Clone o repositório:
   ```bash
@@ -51,13 +46,17 @@ Este projeto é um sistema de atendimento automatizado utilizando um totem inter
   ```bash
   cd totem-atendimento
   ```
-3. Instale as dependências:
+3. Instale as dependências do front end:
   ```bash
+  cd Totem_atendimento_frontend
   npm install
+  npm run dev
   ```
-4. Inicie o servidor:
+4. Instale as dependências do back end:
   ```bash
-  npm start
+  cd Totem_atendimento_backend
+  .venv\Scripts\activate.bat
+  python main\main.py
   ```
 
 O projeto estará rodando em `http://localhost:3000`.
@@ -69,5 +68,3 @@ O projeto estará rodando em `http://localhost:3000`.
 4. Faça o push para a branch (`git push origin feature/nova-feature`)
 5. Abra um Pull Request
 
-## Licença
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
