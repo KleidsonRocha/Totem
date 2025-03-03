@@ -28,8 +28,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configura a impressora
 lista_impressora = win32print.EnumPrinters(2)
-impressora = lista_impressora[1]
-print(impressora)
+impressora = lista_impressora[2]
+print(impressora[2])
 win32print.SetDefaultPrinter(impressora[2])
 
 # Variável global para o controle do número de atendimento e ticket atual
@@ -220,17 +220,18 @@ def handle_connect():
 
 @socketio.on('novo_ticket_chamado')
 def handle_novo_ticket_chamado(data):
-    #{'ticketNumber': 1, 'attendantName': 'KLEIDSON'}
+    # {'ticketNumber': 1, 'attendantName': 'KLEIDSON'}
+
+    # Verifica se o atendente é 'ERIVELTON' e altera para 'ZEN'
     if data['attendantName'] == 'ERIVELTON':
-        attendant_name = 'ZEN'
-    else:
-        attendant_name = data['attendantName']
-
+        data['attendantName'] = 'ZEN'
+    
     # Incrementa o contador para o atendente específico
-    tickets_por_atendente[attendant_name] += 1
+    tickets_por_atendente[data['attendantName']] += 1
 
-    print(f'{attendant_name} chamou mais um ticket. Total atual: {tickets_por_atendente[attendant_name]}')
+    print(f'{data["attendantName"]} chamou mais um ticket. Total atual: {tickets_por_atendente[data["attendantName"]]}')
     print(f'Novo ticket chamado: {data}')
+    
     # Emite o evento para todos os clientes conectados
     socketio.emit('novo_ticket_chamado', data)
 
