@@ -1,4 +1,14 @@
-# Totem Atendimento
+## Descrição
+Este projeto é um sistema de atendimento automatizado utilizando um totem interativo. Ele permite que os usuários realizem diversas operações de forma autônoma.
+
+## Funcionalidades
+- Consulta de informações
+- Agendamento de serviços
+- Emissão de senhas
+- Atendimento personalizado
+
+## Como Rodar
+
 ## Instalação do Ambiente Virtual
 
 ### Pré-requisitos
@@ -26,16 +36,7 @@
   ```bash
   pip install -r requirements.txt
   ```
-## Descrição
-Este projeto é um sistema de atendimento automatizado utilizando um totem interativo. Ele permite que os usuários realizem diversas operações de forma autônoma.
 
-## Funcionalidades
-- Consulta de informações
-- Agendamento de serviços
-- Emissão de senhas
-- Atendimento personalizado
-
-## Como Rodar
 
 ### Pré-requisitos
 - Node.js instalado
