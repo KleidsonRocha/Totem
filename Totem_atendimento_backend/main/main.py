@@ -41,13 +41,26 @@ lock = Lock()
 
 # Configuração da URL do banco de dados
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Opcional, desativa o rastreamento de modificações
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+
+class TotemAtendimento(db.Model):
+    __tablename__ = 'toten_atendimentos'
+    __table_args__ = {'schema': 'soccol'}  # Schema específico
+    
+    id = db.Column(db.Integer, primary_key=True)
+    data_hora = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    atendente = db.Column(db.String(100), nullable=False)
+    quantidade_tickets = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    
+    def __repr__(self):
+        return f'<TotemAtendimento {self.atendente}: {self.quantidade_tickets} tickets>'
 
 @app.route('/postgressql/login', methods=['POST'])
 def login():
@@ -58,8 +71,7 @@ def login():
    # Consulta o usuário pelo nome de usuário
    sql = text("SELECT DISTINCT u.cd_usuario, u.login, u.senha, f.nm_funcionario FROM public.usuario u INNER JOIN public.funcionario f ON u.cd_funcionario = f.cd_funcionario WHERE u.login = :username;")
    result = db.session.execute(sql, {'username': username})
-   usuario = result.fetchone()  # Obtém um único resultado
-
+   usuario = result.fetchone()
 
    if usuario is None:
          return jsonify({'error': 'Usuário não encontrado'}), 404
@@ -81,21 +93,17 @@ def login():
 
 @app.route('/salvar_ticket', methods=['POST'])
 def salvar_ticket():
-   global ticket_number  # Usa a variável global para acessar o número de tickets
+   global ticket_number
 
    try:
-      # Obter o timestamp atual
-      timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+      timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 
-      # Evita salvar caso o número de tickets seja 1 (indica que não há tickets emitidos)
       if ticket_number == 1:
          return jsonify({'message': 'Nenhum ticket emitido para salvar'}), 200
 
-      # Salvar a quantidade de tickets e o timestamp no arquivo
       with open('tickets_log.txt', 'a') as file:
          file.write(f'{timestamp} - Quantidade de tickets: {ticket_number - 1}\n')
 
-      # Reinicia o contador de tickets no backend
       ticket_number = 1
 
       return jsonify({'message': 'Quantidade de tickets salva com sucesso'}), 200
@@ -105,32 +113,25 @@ def salvar_ticket():
 
 @app.route('/imprimir_atendimento', methods=['POST'])
 def imprimir_atendimento():
-   global ticket_number  # Usa uma variável global para incrementar o número
+   global ticket_number
 
    try:
-      # Gera o número do atendimento automaticamente
       numero_atendimento = ticket_number
       ticket_number += 1
 
-      # Configura o caminho do arquivo temporário para o PDF
       caminho_temp = os.path.join(tempfile.gettempdir(), f"atendimento_{numero_atendimento + 1}.pdf")
 
-      # Defina o tamanho personalizado em milímetros
-      largura_mm = 110  # 75 mm de largura
-      comprimento_mm = 400  # 240 mm de comprimento
+      largura_mm = 110
+      comprimento_mm = 400
 
-      # Converta para pontos
       largura_pontos = largura_mm * mm
       comprimento_pontos = comprimento_mm * mm
 
-      # Crie o tamanho personalizado
       tamanho_customizado = (largura_pontos, comprimento_pontos)
 
-      # Cria o documento PDF
       doc = SimpleDocTemplate(caminho_temp, pagesize=tamanho_customizado)
       elements = []
 
-      # Estilo básico para o texto
       styles = getSampleStyleSheet()
 
       estilo_titulo = styles['Title']
@@ -157,29 +158,22 @@ def imprimir_atendimento():
       imagem.drawHeight = 0.40 * imagem.imageHeight
       imagem.drawWidth = 0.40 * imagem.imageWidth
 
-      # Adiciona os elementos ao PDF
       elements.append(imagem)
       elements.append(Paragraph(f"{numero_atendimento + 1}", estilo_titulo))
       elements.append(Spacer(10, 50))
       elements.append(Paragraph("Conheça nossa plataforma digital:", texto))
       elements.append(Paragraph("b2b.soccolbarbieri.com.br", texto))
 
-      # Gera o PDF
       doc.build(elements)
 
-      # Imprime o PDF
       win32api.ShellExecute(0, "print", caminho_temp, None, ".", 0)
 
-      # Aguarda um curto período de tempo para garantir que o aplicativo consiga acessar o arquivo
       time.sleep(5)
 
-      # Exclui o arquivo temporário após a impressão
       os.remove(caminho_temp)
 
-      # Envia uma atualização via WebSocket informando que um novo ticket foi impresso
       socketio.emit('ticket_impresso_atualizado', {'ticket_impresso': ticket_number})
 
-      # Retorna o número do atendimento gerado ao front-end
       return jsonify({'message': 'PDF gerado e impresso com sucesso!', 'numero': numero_atendimento}), 200
 
    except Exception as e:
@@ -207,134 +201,97 @@ def chamar_ticket():
 
     with lock:
         ticket_atual += 1
-        socketio.emit('ticket_atualizado', {"ticket_atual": ticket_atual})  # Envia atualização via WebSocket
+        socketio.emit('ticket_atualizado', {"ticket_atual": ticket_atual})
         return jsonify({"ticket_atual": ticket_atual, "message": f"Ticket {ticket_atual} chamado com sucesso!"}), 200
+
+@app.route('/consultar_atendimentos', methods=['GET'])
+def consultar_atendimentos():
+    try:
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        
+        query = TotemAtendimento.query
+        
+        if data_inicio:
+            data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+            query = query.filter(TotemAtendimento.data_hora >= data_inicio_obj)
+            
+        if data_fim:
+            data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+            query = query.filter(TotemAtendimento.data_hora <= data_fim_obj)
+        
+        atendimentos = query.order_by(TotemAtendimento.data_hora.desc()).all()
+        
+        resultado = []
+        for atendimento in atendimentos:
+            resultado.append({
+                'id': atendimento.id,
+                'data_hora': atendimento.data_hora.strftime('%Y-%m-%d %H:%M:%S'),
+                'atendente': atendimento.atendente,
+                'quantidade_tickets': atendimento.quantidade_tickets
+            })
+        
+        return jsonify({'atendimentos': resultado}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @socketio.on('connect')
 def handle_connect():
     print('Cliente conectado')
-
-    # Enviar os valores atuais para o cliente
     socketio.emit('ticket_atualizado', {'ticket_atual': ticket_atual})
     socketio.emit('ticket_impresso_atualizado', {'ticket_impresso': ticket_number})
 
 @socketio.on('novo_ticket_chamado')
 def handle_novo_ticket_chamado(data):
-    # {'ticketNumber': 1, 'attendantName': 'KLEIDSON'}
-
-    # Verifica se o atendente é 'ERIVELTON' e altera para 'ZEN'
     if data['attendantName'] == 'ERIVELTON':
         data['attendantName'] = 'ZEN'
     
-    # Incrementa o contador para o atendente específico
     tickets_por_atendente[data['attendantName']] += 1
 
     print(f'{data["attendantName"]} chamou mais um ticket. Total atual: {tickets_por_atendente[data["attendantName"]]}')
     print(f'Novo ticket chamado: {data}')
     
-    # Emite o evento para todos os clientes conectados
     socketio.emit('novo_ticket_chamado', data)
-
-@socketio.on('/postgressql/pedidos')
-def pedidos():
-    # Quando o cliente se conectar, ele receberá os pedidos atuais
-    socketio.emit('atualizacao_pedidos', latest_pedidos)
-
-def iniciar_background_task():
-    thread = threading.Thread(target=consultar_pedidos_periodicamente)
-    thread.daemon = True
-    thread.start()
 
 def salvar_dados():
     global ticket_number, ticket_atual
-    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
-    if not tickets_por_atendente:
-        print('sem ticket')
-        return
+    with app.app_context():
+        if not tickets_por_atendente:
+            print('Sem tickets para salvar')
+            return
 
-    # Diretório para salvar os arquivos
-    directory = 'Tickets'
-    
-    # Cria o diretório, se ele não existir
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    
-    # Caminho completo do arquivo
-    file_path = os.path.join(directory, f'tickets_{now}.json')
-    
-    # Verifica o conteúdo antes de salvar
-    print("Conteúdo de tickets_por_atendente antes de salvar:", tickets_por_atendente)
-    
-    
-    # Salva os dados em um arquivo JSON
-    with open(file_path, 'w') as file:
-        json.dump(tickets_por_atendente, file, indent=4)
-    
-    print(f"Dados salvos no arquivo {file_path}")
-    
-    # Limpa os dados para a próxima contagem
-    tickets_por_atendente.clear()
-    
-    ticket_number = 0
-    ticket_atual = 0
-    print('Número de tickets resetado para 0')
+        try:
+            for atendente, quantidade in tickets_por_atendente.items():
+                novo_atendimento = TotemAtendimento(
+                    atendente=atendente,
+                    quantidade_tickets=quantidade,
+                    data_hora=datetime.now()
+                )
+                db.session.add(novo_atendimento)
+            
+            db.session.commit()
+            print(f"Dados salvos no banco de dados: {dict(tickets_por_atendente)}")
+            
+            # Limpar dados apenas após sucesso
+            tickets_por_atendente.clear()
+            ticket_number = 0
+            ticket_atual = 0
+            print('Número de tickets resetado para 0')
+            
+        except Exception as e:
+            try:
+                db.session.rollback()
+            except Exception as rollback_error:
+                print(f"Erro adicional no rollback: {str(rollback_error)}")
+            print(f"Erro ao salvar dados no banco: {str(e)}")
 
-def consultar_pedidos_periodicamente():
-    global latest_pedidos
-    with app.app_context():  # Cria o contexto da aplicação Flask para essa thread
-        while True:
-            # Define a consulta SQL
-            sql = text("""
-                SELECT DISTINCT 
-                    public.tarefa_monitor.nm_tarefa_monitor,
-                FROM
-                    public.pedido_venda
-                    LEFT JOIN public.situacao_pedido_venda 
-                        ON public.pedido_venda.cd_situacao = public.situacao_pedido_venda.cd_situacao
-                    LEFT JOIN public.pedido_venda_afv 
-                        ON public.pedido_venda.id_geral = public.pedido_venda_afv.id_pedido_venda_gerado
-                    LEFT JOIN public.tarefa_monitor 
-                        ON public.pedido_venda.id_geral = public.tarefa_monitor.id_origem_tarefa
-                WHERE
-                    public.pedido_venda.cd_filial = 1
-                    AND public.pedido_venda.dt_emissao >= current_timestamp - INTERVAL '1 day'
-                    AND public.pedido_venda.cd_operacao IN ('501')
-                    AND public.situacao_pedido_venda.cd_situacao IN ('40')
-                    AND public.tarefa_monitor.cd_monitor = 111 
-                ORDER BY
-                    public.pedido_venda.dt_atz DESC
-            """)
-
-            # Executa a consulta no banco de dados
-            result = db.session.execute(sql)
-
-            # Converte os resultados em uma lista de dicionários
-            pedidos_atual = []
-            for row in result:
-                pedidos_atual.append({
-                    "pedido": row[0],
-                    "cd_situacao": row[1],
-                    "nm_situacao": row[2],
-                    "id_origem_tarefa": row[3],
-                    "nm_tarefa_monitor": row[4],
-                    "id_pedido_soccol": row[5],
-                    "cd_filial": row[6],
-                    "dt_atz": row[7].isoformat() if row[7] else None
-                })
-
-            if pedidos_atual != latest_pedidos:
-                latest_pedidos = pedidos_atual
-                socketio.emit('atualizacao_pedidos', pedidos_atual)
-
-
-            time.sleep(15)
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(salvar_dados, 'cron', hour=12, minute=0)
 scheduler.add_job(salvar_dados, 'cron', hour=18, minute=0)
 
 if __name__ == '__main__':
-   iniciar_background_task()
    scheduler.start()
    app.run(debug=True, host='0.0.0.0', port=9000)

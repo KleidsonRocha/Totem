@@ -11,14 +11,12 @@ const socket = io(ENDPOINTS.socketIO);
 const Dashboard = () => {
   const [ticket, setTicket] = useState(0);
   const [attendantName, setAttendantName] = useState('');
-  const [pedidos, setPedidos] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     socket.on('connect', () => {
       console.log('Conectado ao servidor');
     });
-  
+
     // Escuta atualizações de tickets chamados
     socket.on('novo_ticket_chamado', (data) => {
       setTicket(data.ticketNumber);
@@ -26,46 +24,43 @@ const Dashboard = () => {
       playAlertSound(data.ticketNumber, data.attendantName);
     });
 
-    socket.on('atualizacao_pedidos', (data) => {   
-      console.log(data);
-      setPedidos(data);
-      setCurrentIndex(0); // Resetar o índice quando a lista de pedidos for atualizada
-    });
-  
     return () => {
       socket.off('novo_ticket_chamado');
-      socket.off('atualizacao_pedidos');
+
     };
   }, []);
 
-  useEffect(() => {
-    // Atualiza o índice a cada 5 segundos
-    const interval = setInterval(() => {
-      setCurrentIndex(prevIndex => {
-        const nextIndex = prevIndex + 3;
-        return nextIndex < pedidos.length ? nextIndex : 0;
-      });
-    }, 5000); // Intervalo de 5 segundos
-
-    return () => clearInterval(interval);
-  }, [pedidos]);
-
   // Função para tocar o som com o número do ticket e nome do atendente
+
   const playAlertSound = (ticketNumber, attendantName) => {
     const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find(v => v.name === 'Microsoft Maria - Portuguese (Brazil)'); // Substitua pelo nome da voz desejada
-   
-    const utterance = new SpeechSynthesisUtterance(`Ticket número ${ticketNumber} atendido por ${attendantName}`);
-    utterance.lang = 'pt-BR'; // Define o idioma
-   
-    if (voice) {
-      utterance.voice = voice;
+
+    // Procura por vozes femininas em português
+    const femaleVoices = voices.filter(v =>
+      v.lang.includes('pt') &&
+      (v.name.includes('Maria') ||
+        v.name.includes('Fernanda') ||
+        v.name.includes('female') ||
+        v.name.includes('Female'))
+    );
+
+    const utterance = new SpeechSynthesisUtterance(
+      `Ticket número ${ticketNumber}, favor dirigir-se ao atendente ${attendantName}`
+    );
+
+    // Configurações para voz mais sensual/atrativa
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.8;     // Velocidade mais lenta (sensual)
+    utterance.pitch = 0.7;    // Tom mais grave
+    utterance.volume = 1.0;   // Volume máximo
+
+    // Usa a primeira voz feminina encontrada
+    if (femaleVoices.length > 0) {
+      utterance.voice = femaleVoices[0];
     }
-  
+
     window.speechSynthesis.speak(utterance);
   };
-
-  const pedidosParaExibir = pedidos.slice(currentIndex, currentIndex + 3);
 
   return (
     <>
@@ -74,20 +69,11 @@ const Dashboard = () => {
         <div className='dashboardTicket'>
           <h1 className='Ticket'>Número</h1>
           <h1 className='Ticket'>{ticket}</h1>
-          <h1 className='Ticket'>Atendente</h1>  
-          <h1 className='Ticket'>{attendantName}</h1>  
+          <h1 className='Ticket'>Atendente</h1>
+          <h1 className='Ticket'>{attendantName}</h1>
         </div>
-        <ul className='dashboardPedidos'>
-        <h1 className='pedidoTitulo'>Pedidos prontos</h1>
-          {pedidosParaExibir.map((pedido, index) => (
-            <li key={index}>
-              <p className='dashboardPedidosItem'>{pedido.nm_tarefa_monitor}</p>
-            </li>
-          ))}
-        </ul>
-
       </div>
-      <Footer />
+
     </>
   );
 };
