@@ -11,6 +11,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // Modifique apenas a parte do navigate no handleLogin
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -36,7 +37,8 @@ const Login = () => {
       sessionStorage.setItem('userData', data.success.login);
       sessionStorage.setItem('Nome', data.success.nome_funcionario.split(' ')[0]);
 
-      navigate('/Ticket'); 
+      // Redireciona para seleção de guichê
+      navigate('/selecionar-guiche'); 
 
     } catch (error) {
       setError('Erro ao fazer login. Verifique suas credenciais.');

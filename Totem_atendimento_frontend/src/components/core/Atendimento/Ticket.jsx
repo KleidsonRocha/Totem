@@ -21,26 +21,32 @@ const Ticket = () => {
 
   useEffect(() => {
     const authToken = sessionStorage.getItem('authToken');
+    const guicheSelecionado = sessionStorage.getItem('guicheSelecionado');
     if (!authToken) {
-      navigate('/login'); 
+      navigate('/login');
+      return;
+    }
+
+    if (!guicheSelecionado) {
+      navigate('/selecionar-guiche');
       return;
     }
 
     handleConsultaUltimoTicket();
     handleVerificaTicketImpresso();
-  
+
     // Escuta atualizações de tickets chamados
     socket.on('ticket_atualizado', (data) => {
       setTicket(data.ticket_atual);
       calcularTicketsAChamar(ticketImpresso, data.ticket_atual);
     });
-  
+
     // Escuta atualizações de tickets impressos
     socket.on('ticket_impresso_atualizado', (data) => {
       setTicketImpresso(data.ticket_impresso);
       calcularTicketsAChamar(data.ticket_impresso, ticket);
     });
-  
+
     return () => {
       socket.off('ticket_atualizado');
       socket.off('ticket_impresso_atualizado');
@@ -96,17 +102,17 @@ const Ticket = () => {
       if (ticket >= ticketImpresso) {
         setPopupTitle('Erro');
         setPopupMessage('Não há mais tickets para chamar.');
-        setShowPopup(true); // Mostra o popup se não houver mais tickets
+        setShowPopup(true);
         return;
       }
-  
+
       const response = await fetch(ENDPOINTS.chamarTicket, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         setPopupTitle('Ticket Chamado');
@@ -114,25 +120,27 @@ const Ticket = () => {
         setShowPopup(true);
         setTicket(data.ticket_atual);
         calcularTicketsAChamar(ticketImpresso, data.ticket_atual);
-  
-        // Emite o evento para notificar o Dashboard
+
+        // Emite o evento incluindo o guichê
         socket.emit('novo_ticket_chamado', {
           ticketNumber: data.ticket_atual,
-          attendantName: authToken 
+          attendantName: authToken,
+          guiche: sessionStorage.getItem('guicheSelecionado') // Adicione esta linha
         });
       } else {
         setPopupTitle('Erro');
         setPopupMessage('Não foi possível chamar o ticket.');
-        setShowPopup(true); // Mostra o popup se a resposta não for ok
+        setShowPopup(true);
       }
     } catch (error) {
       console.error('Erro ao chamar o ticket:', error);
       setPopupTitle('Erro');
       setPopupMessage('Erro ao chamar o ticket.');
-      setShowPopup(true); // Mostra o popup em caso de erro
+      setShowPopup(true);
     }
   };
-  const handleClosePopup = () => setShowPopup(false); 
+
+  const handleClosePopup = () => setShowPopup(false);
 
   const temTicketsParaChamar = ticket < ticketImpresso;
   const qtdTicketsParaChamar = ticketImpresso - ticket;
@@ -142,21 +150,21 @@ const Ticket = () => {
       <HamburgerMenu />
       <div className='carouselTicket'>
         <h1 className='TKTAtual'>Ticket Atual: {ticket}</h1>
-        <br/>
+        <br />
         <h1 className='TKTFila'>Há {qtdTicketsParaChamar} tickets para chamar</h1>
-        <button 
+        <button
           className='buttonAtendimento'
-          onClick={handleChamadaTicket} 
+          onClick={handleChamadaTicket}
           disabled={!temTicketsParaChamar}
         >
           Chamar Ticket
         </button>
       </div>
       {showPopup && (
-        <Popup 
+        <Popup
           title={popupTitle}
-          message={popupMessage} 
-          onClose={handleClosePopup} 
+          message={popupMessage}
+          onClose={handleClosePopup}
         />
       )}
       <Footer />

@@ -1,0 +1,106 @@
+.guicheContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  margin: 2rem;
+  padding: 2rem;
+  background-color: black;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  min-height: 60vh;
+}
+
+.guicheContainer h2 {
+  font-size: 4rem;
+  color: white;
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.guicheContainer form {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.guicheContainer .formGroup {
+  margin-bottom: 2rem;
+}
+
+.guicheContainer .formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: red;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.guicheContainer select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid white;
+  border-radius: 4px;
+  background-color: #333;
+  color: white;
+  font-size: 1.1rem;
+  font-family: "Gill Sans", sans-serif;
+}
+
+.guicheContainer select:focus {
+  border-color: red;
+  outline: none;
+}
+
+.guicheContainer select option {
+  background-color: #333;
+  color: white;
+  padding: 0.5rem;
+}
+
+.botaoGuiche {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 2rem auto 0;
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-family: "Gill Sans", sans-serif;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.botaoGuiche:hover {
+  background-color: darkred;
+  transform: scale(1.02);
+}
+
+.guicheContainer .error {
+  color: red;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+  .guicheContainer {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  
+  .guicheContainer h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .botaoGuiche {
+    font-size: 1rem;
+    padding: 0.8rem 1.5rem;
+  }
+}

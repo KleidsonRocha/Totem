@@ -6,6 +6,7 @@ import Ticket from "./components/core/Atendimento/Ticket";
 import Dashboard from "./components/core/Dashboard/Dashboard";
 import Login from "./components/login/Login";
 import PrivateRoute from "./PrivateRoute";
+import GuicheSelection from "./components/core/Guiche/GuicheSelection";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/Devolucao" element={<Devolucao />} />
         <Route path="/Login" element={<Login />} />
+        <Route path="/selecionar-guiche" element={<GuicheSelection />} />
 
         {/* Rotas protegidas */}
         <Route element={<PrivateRoute />}>

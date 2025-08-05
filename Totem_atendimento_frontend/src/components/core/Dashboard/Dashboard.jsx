@@ -7,10 +7,10 @@ import { ENDPOINTS } from '../../../config';
 
 const socket = io(ENDPOINTS.socketIO);
 
-// Componente Principal
 const Dashboard = () => {
   const [ticket, setTicket] = useState(0);
   const [attendantName, setAttendantName] = useState('');
+  const [guiche, setGuiche] = useState(''); // Adicione este estado
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -21,21 +21,19 @@ const Dashboard = () => {
     socket.on('novo_ticket_chamado', (data) => {
       setTicket(data.ticketNumber);
       setAttendantName(data.attendantName);
-      playAlertSound(data.ticketNumber, data.attendantName);
+      setGuiche(data.guiche || 'N/A'); // Adicione esta linha
+      playAlertSound(data.ticketNumber, data.guiche); // Modifique esta linha
     });
 
     return () => {
       socket.off('novo_ticket_chamado');
-
     };
   }, []);
 
-  // Função para tocar o som com o número do ticket e nome do atendente
-
-  const playAlertSound = (ticketNumber, attendantName) => {
+  // Modifique a função playAlertSound
+  const playAlertSound = (ticketNumber, guiche) => {
     const voices = window.speechSynthesis.getVoices();
 
-    // Procura por vozes femininas em português
     const femaleVoices = voices.filter(v =>
       v.lang.includes('pt') &&
       (v.name.includes('Maria') ||
@@ -45,16 +43,14 @@ const Dashboard = () => {
     );
 
     const utterance = new SpeechSynthesisUtterance(
-      `Ticket número ${ticketNumber}, favor dirigir-se ao atendente ${attendantName}`
+      `Ticket número ${ticketNumber}, favor dirigir-se ao guichê ${guiche}`
     );
 
-    // Configurações para voz mais sensual/atrativa
     utterance.lang = 'pt-BR';
-    utterance.rate = 0.8;     // Velocidade mais lenta (sensual)
-    utterance.pitch = 0.7;    // Tom mais grave
-    utterance.volume = 1.0;   // Volume máximo
+    utterance.rate = 0.8;
+    utterance.pitch = 0.7;
+    utterance.volume = 1.0;
 
-    // Usa a primeira voz feminina encontrada
     if (femaleVoices.length > 0) {
       utterance.voice = femaleVoices[0];
     }
@@ -67,13 +63,11 @@ const Dashboard = () => {
       <HamburgerMenu />
       <div className='dashboard'>
         <div className='dashboardTicket'>
-          <h1 className='Ticket'>Número</h1>
-          <h1 className='Ticket'>{ticket}</h1>
-          <h1 className='Ticket'>Atendente</h1>
-          <h1 className='Ticket'>{attendantName}</h1>
+          <h1 className='Ticket'>Número: {ticket}</h1>
+          <h1 className='Ticket'>Guichê: {guiche}</h1>
+          <h1 className='Ticket'>Atendente: {attendantName}</h1>
         </div>
       </div>
-
     </>
   );
 };

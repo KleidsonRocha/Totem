@@ -19,6 +19,7 @@ import threading
 import time
 import hashlib
 import json
+from sqlalchemy.exc import OperationalError
 
 load_dotenv()
 
@@ -242,6 +243,7 @@ def handle_connect():
     socketio.emit('ticket_atualizado', {'ticket_atual': ticket_atual})
     socketio.emit('ticket_impresso_atualizado', {'ticket_impresso': ticket_number})
 
+
 @socketio.on('novo_ticket_chamado')
 def handle_novo_ticket_chamado(data):
     if data['attendantName'] == 'ERIVELTON':
@@ -249,7 +251,8 @@ def handle_novo_ticket_chamado(data):
     
     tickets_por_atendente[data['attendantName']] += 1
 
-    print(f'{data["attendantName"]} chamou mais um ticket. Total atual: {tickets_por_atendente[data["attendantName"]]}')
+    # Adicione o log do guichê
+    print(f'{data["attendantName"]} no guichê {data.get("guiche", "N/A")} chamou mais um ticket. Total atual: {tickets_por_atendente[data["attendantName"]]}')
     print(f'Novo ticket chamado: {data}')
     
     socketio.emit('novo_ticket_chamado', data)
@@ -262,31 +265,57 @@ def salvar_dados():
             print('Sem tickets para salvar')
             return
 
-        try:
-            for atendente, quantidade in tickets_por_atendente.items():
-                novo_atendimento = TotemAtendimento(
-                    atendente=atendente,
-                    quantidade_tickets=quantidade,
-                    data_hora=datetime.now()
-                )
-                db.session.add(novo_atendimento)
-            
-            db.session.commit()
-            print(f"Dados salvos no banco de dados: {dict(tickets_por_atendente)}")
-            
-            # Limpar dados apenas após sucesso
-            tickets_por_atendente.clear()
-            ticket_number = 0
-            ticket_atual = 0
-            print('Número de tickets resetado para 0')
-            
-        except Exception as e:
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
             try:
-                db.session.rollback()
-            except Exception as rollback_error:
-                print(f"Erro adicional no rollback: {str(rollback_error)}")
-            print(f"Erro ao salvar dados no banco: {str(e)}")
-
+                # Verificar se a conexão está ativa
+                db.session.execute(text('SELECT 1'))
+                
+                for atendente, quantidade in tickets_por_atendente.items():
+                    novo_atendimento = TotemAtendimento(
+                        atendente=atendente,
+                        quantidade_tickets=quantidade,
+                        data_hora=datetime.now()
+                    )
+                    db.session.add(novo_atendimento)
+                
+                db.session.commit()
+                print(f"Dados salvos no banco de dados: {dict(tickets_por_atendente)}")
+                
+                # Limpar dados apenas após sucesso
+                tickets_por_atendente.clear()
+                ticket_number = 0
+                ticket_atual = 0
+                print('Número de tickets resetado para 0')
+                break
+                
+            except OperationalError as e:
+                retry_count += 1
+                print(f"Tentativa {retry_count} falhou: {str(e)}")
+                
+                try:
+                    db.session.rollback()
+                    db.session.close()  # Fechar conexão problemática
+                except:
+                    pass
+                
+                if retry_count < max_retries:
+                    print(f"Tentando novamente em 5 segundos...")
+                    time.sleep(5)
+                    # Criar nova sessão
+                    db.session.remove()
+                else:
+                    print("Todas as tentativas falharam. Dados não foram salvos.")
+                    
+            except Exception as e:
+                try:
+                    db.session.rollback()
+                except:
+                    pass
+                print(f"Erro inesperado ao salvar dados: {str(e)}")
+                break
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(salvar_dados, 'cron', hour=12, minute=0)
